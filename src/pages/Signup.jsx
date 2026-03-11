@@ -1,4 +1,5 @@
 import React from 'react'
+import SignupForm from '../components/auth/SignupForm'
 
 function Signup() {
     return (
@@ -40,53 +41,7 @@ function Signup() {
                     </div>
 
                     {/* Form */}
-                    <form className="flex flex-col gap-3 text-slate-800">
-
-                        <div className='flex flex-col gap-1'>
-                            <label className="text-sm font-bold text-slate-700">Your Full Name</label>
-                            <input
-                                type="text"
-                                placeholder="Name"
-                                className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 transition-colors"
-                            />
-                        </div>
-
-                        <div className='flex flex-col gap-1'>
-                            <label className="text-sm font-bold text-slate-700">Your Email</label>
-                            <input
-                                type="email"
-                                placeholder="Email"
-                                className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 transition-colors"
-                            />
-                        </div>
-
-                        <div className='flex flex-col gap-1'>
-                            <label className="text-sm font-bold text-slate-700">Your Password</label>
-                            <input
-                                type="password"
-                                placeholder="Password"
-                                className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 transition-colors"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm font-bold text-slate-700">Enrollment Code</label>
-                            <input
-                                type="text"
-                                placeholder="Enter code from your institution"
-                                className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 transition-colors"
-                            />
-                            <span className="text-xs text-slate-400">Get this code from your institution</span>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="bg-slate-900 text-white rounded-lg py-2 mt-2 cursor-pointer hover:bg-slate-800 transition-colors"
-                        >
-                            Sign Up
-                        </button>
-
-                    </form>
+                    <SignupForm />
 
                 </div>
 
