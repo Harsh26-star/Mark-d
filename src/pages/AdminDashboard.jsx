@@ -48,6 +48,23 @@ function AdminDashboard() {
     console.log(className)
   }
 
+  async function handleSubjectSubmit(e) {
+    e.preventDefault()
+
+    const { error: subjectError } = await supabase
+      .from('subjects')
+      .insert({
+        name: subjectName,
+        class_id: classId,
+        professor_id: professorId 
+      })
+
+    console.log('subject error:', subjectError)
+    console.log('classId:', classId)
+    console.log('professorId:', professorId)
+    console.log('subjectName:', subjectName)
+  }
+
 
 
   return (
@@ -76,7 +93,7 @@ function AdminDashboard() {
 
       </form>
 
-      <form>
+      <form onSubmit={handleSubjectSubmit}>
         <div className='flex flex-col gap-1'>
           <label className="text-sm font-bold text-slate-700">Name of the Subject</label>
           <input
