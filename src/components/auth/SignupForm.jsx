@@ -34,6 +34,10 @@ function SignupForm() {
             password
         })
 
+        await supabase.auth.updateUser({
+            data: { role: 'student' }
+        })
+
         if (authError) {
             setError(authError.message)
             setLoading(false)

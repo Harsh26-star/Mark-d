@@ -17,13 +17,8 @@ function ProtectedRoute({ children, role }) {
                 return
             }
 
-            const { data } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single()
-
-            setProfile(data)
+            const role = session.user.app_metadata.role
+            setProfile({ role })
             setLoading(false)
         }
 

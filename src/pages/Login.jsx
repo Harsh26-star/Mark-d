@@ -27,8 +27,8 @@ function Login() {
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-2">
 
                         <div className="flex flex-col text-sm">
-                            <h2 className='text-xl font-bold text-slate-900'>Create your account</h2>
-                            <p className='text-sm text-slate-400'>Enter your details to get started</p>
+                            <h2 className='text-xl font-bold text-slate-900'>Welcome Back</h2>
+                            <p className='text-sm text-slate-400'>Enter your credentials to continue</p>
                         </div>
 
                         <div className="flex flex-col text-sm">

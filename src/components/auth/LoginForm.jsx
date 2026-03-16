@@ -8,33 +8,28 @@ function LoginForm() {
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
-    const navigate  = useNavigate()
+    const navigate = useNavigate()
 
     async function handleLogin(e) {
         e.preventDefault()
         setError('')
         setLoading(true)
 
-        const { data, error} = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
         })
 
         if (error) {
             setError(error.message)
+            setLoading(false)
+            return
         }
 
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single()
-        
-
-        if(profile.role === 'student') {
-            navigate("/student")
-        }
-
+        const role = data.user.app_metadata.role
+        if (role === 'student') navigate('/student')
+        if (role === 'professor') navigate('/professor')
+        if (role === 'admin') navigate('/admin')
     }
 
     return (
