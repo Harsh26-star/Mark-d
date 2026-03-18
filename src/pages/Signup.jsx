@@ -1,7 +1,11 @@
 import React from 'react'
 import SignupForm from '../components/auth/SignupForm'
+import { Navigate, useNavigate } from 'react-router-dom'
 
 function Signup() {
+
+    const navigate = useNavigate()
+
     return (
         <div className="min-h-screen bg-gray-200 flex items-center justify-center px-4 md:px-10 lg:px-20">
 
@@ -33,7 +37,9 @@ function Signup() {
 
                         <div className="flex flex-col text-sm">
                             <span>Already logged in?</span>
-                            <span className="text-blue-500 cursor-pointer">
+                            <span
+                            onClick={() => navigate('/login')} 
+                            className="text-blue-500 cursor-pointer">
                                 Log in here
                             </span>
                         </div>

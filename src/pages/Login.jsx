@@ -1,7 +1,11 @@
 import React from 'react'
 import LoginForm from '../components/auth/LoginForm'
+import { Navigate, useNavigate } from 'react-router-dom'
 
 function Login() {
+
+    const navigate = useNavigate()
+
     return (
         <div className="min-h-screen bg-gray-200 flex items-center justify-center px-4 md:px-10 lg:px-20">
 
@@ -33,7 +37,10 @@ function Login() {
 
                         <div className="flex flex-col text-sm">
                             <span>Don't have an account?</span>
-                            <span className="text-blue-500 cursor-pointer">
+                            <span 
+                            className="text-blue-500 cursor-pointer"
+                            onClick={() => navigate('/signup')}
+                            >
                                 Sign Up
                             </span>
                         </div>
