@@ -10,6 +10,19 @@ function AdminDashboard() {
   const [professors, setProfessors] = useState([])
   const [professorId, setProfessorId] = useState('')
   const [classId, setClassId] = useState('');
+  const [codeClassId, setCodeClassId] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
+  const [generatedCode, setGeneratedCode] = useState('')
+
+
+  function generateCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return code
+  }
 
   useEffect(() => {
     async function fetchProfessors() {
@@ -44,7 +57,11 @@ function AdminDashboard() {
       .insert({
         name: className
       })
-
+      
+    if (!className.trim()) {
+      setError('Class name cannot be empty')
+      return
+    }
     console.log(className)
   }
 
@@ -63,6 +80,23 @@ function AdminDashboard() {
     console.log('classId:', classId)
     console.log('professorId:', professorId)
     console.log('subjectName:', subjectName)
+  }
+
+  async function handleGenerateCode(e) {
+    e.preventDefault()
+    const code = generateCode()
+
+    const { error } = await supabase
+      .from('enrollment_codes')
+      .insert({
+        class_id: codeClassId,
+        code: code,
+        expires_at: expiresAt,
+        is_active: true
+      })
+
+    if (!error) setGeneratedCode(code)
+
   }
 
 
@@ -155,7 +189,47 @@ function AdminDashboard() {
             </button>
 
           </form>
+          <form
+            onSubmit={handleGenerateCode}
+            className="bg-white shadow-sm rounded-xl p-6 flex flex-col gap-4"
+          >
 
+            <h2 className="text-lg font-semibold text-slate-700">
+              Generate a code
+            </h2>
+            <select
+              onChange={(e) => setCodeClassId(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+            >
+              <option value="">Select a class</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="date"
+              placeholder="Set an Expiry date"
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+            />
+
+            <button
+              type="submit"
+              className="bg-slate-900 text-white rounded-lg py-2 cursor-pointer hover:bg-slate-800 transition"
+            >
+              Generate Code
+            </button>
+            {generatedCode && (
+              <div>
+                <p>Share this code with your students:</p>
+                <p>{generatedCode}</p>
+              </div>
+
+            )}
+          </form>
         </div>
       </div>
     </div>
