@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 function ProfessorDashboard() {
@@ -9,6 +9,9 @@ function ProfessorDashboard() {
   const [subjects, setSubjects] = useState([])
   const [subjectId, setSubjectId] = useState()
   const [activeSessionId, setActiveSessionId] = useState(null)
+  const [sessionStatus, setSessionStatus] = useState(null)
+
+  const intervalRef = useRef(null)
 
   useEffect(() => {
     async function checkUser() {
@@ -40,7 +43,7 @@ function ProfessorDashboard() {
     console.log('activeSessionId changed: ', activeSessionId)
     if (!activeSessionId) return
 
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
 
       async function refreshToken() {
         const newToken = crypto.randomUUID()
@@ -59,7 +62,7 @@ function ProfessorDashboard() {
 
     }, 60000);
 
-    return () => clearInterval(interval)
+    return () => clearInterval(intervalRef.current)
   }, [activeSessionId])
 
   async function handleOpenSession(subjectId) {
@@ -86,6 +89,18 @@ function ProfessorDashboard() {
 
   }
 
+  async function handleCloseSession() {
+    const { data } = await supabase
+      .from('sessions')
+      .update({
+        closes_at: new Date().toISOString()
+      })
+      .eq('id', activeSessionId)
+
+    setActiveSessionId(null)
+    clearInterval(intervalRef.current)
+  }
+
 
   return (
     <>
@@ -101,10 +116,10 @@ function ProfessorDashboard() {
                 <option value="OTP">OTP</option>
               </select>
               <button
-                onClick={() => handleOpenSession(subject.id)}
+                onClick={() => activeSessionId ? handleCloseSession() : handleOpenSession(subject.id)}
                 className="bg-slate-900 text-white rounded-lg py-2 cursor-pointer hover:bg-slate-800 transition"
               >
-                Open Session
+                {activeSessionId ? 'Close Session' : 'Open Session'}
               </button>
             </div>
           ))}
