@@ -8,6 +8,7 @@ function ProfessorDashboard() {
   const [selectedMode, setSelectedMode] = useState('QR')
   const [subjects, setSubjects] = useState([])
   const [subjectId, setSubjectId] = useState()
+  const [activeSessionId, setActiveSessionId] = useState(null)
 
   useEffect(() => {
     async function checkUser() {
@@ -35,13 +36,39 @@ function ProfessorDashboard() {
 
   }, [])
 
+  useEffect(() => {
+    console.log('activeSessionId changed: ', activeSessionId)
+    if (!activeSessionId) return
+
+    const interval = setInterval(() => {
+
+      async function refreshToken() {
+        const newToken = crypto.randomUUID()
+        const newTokenExpiresAt = new Date(Date.now() + 60 * 1000).toISOString()
+
+        const { error } = await supabase
+          .from('sessions')
+          .update({
+            token: newToken,
+            token_expires_at: newTokenExpiresAt
+          })
+          .eq('id', activeSessionId)
+      }
+
+      refreshToken()
+
+    }, 60000);
+
+    return () => clearInterval(interval)
+  }, [activeSessionId])
+
   async function handleOpenSession(subjectId) {
 
     const token = crypto.randomUUID()
     const tokenExpiresAt = new Date(Date.now() + 60 * 1000).toISOString()
     const closesAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('sessions')
       .insert({
         subject_id: subjectId,
@@ -50,12 +77,13 @@ function ProfessorDashboard() {
         token: token,
         token_expires_at: tokenExpiresAt
       })
+      .select()
+      .single()
 
-    const { data: {session} } = await supabase.auth.getSession()
-    console.log('current user id :', session.user.id)
-    console.log('subject id being used:', subjectId)
+    if (!error) setActiveSessionId(data.id)
 
-    console.log(error)
+    const { data: { session } } = await supabase.auth.getSession()
+
   }
 
 
