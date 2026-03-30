@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { QRCodeSVG } from 'qrcode.react'
 
 function ProfessorDashboard() {
 
@@ -8,8 +9,10 @@ function ProfessorDashboard() {
   const [selectedMode, setSelectedMode] = useState('QR')
   const [subjects, setSubjects] = useState([])
   const [subjectId, setSubjectId] = useState()
+  const [activeSubjectId, setActiveSubjectId] = useState(null)
   const [activeSessionId, setActiveSessionId] = useState(null)
   const [sessionStatus, setSessionStatus] = useState(null)
+  const [currentToken, setCurrentToken] = useState(null)
 
   const intervalRef = useRef(null)
 
@@ -56,6 +59,8 @@ function ProfessorDashboard() {
             token_expires_at: newTokenExpiresAt
           })
           .eq('id', activeSessionId)
+
+        setCurrentToken(newToken)
       }
 
       refreshToken()
@@ -83,10 +88,15 @@ function ProfessorDashboard() {
       .select()
       .single()
 
-    if (!error) setActiveSessionId(data.id)
+    if (!error) {
+      setActiveSessionId(data.id)
+      setActiveSubjectId(subjectId)
+    }
 
     const { data: { session } } = await supabase.auth.getSession()
 
+
+    setCurrentToken(token)
   }
 
   async function handleCloseSession() {
@@ -121,6 +131,9 @@ function ProfessorDashboard() {
               >
                 {activeSessionId ? 'Close Session' : 'Open Session'}
               </button>
+              {activeSessionId && activeSubjectId === subject.id && currentToken && (
+                <QRCodeSVG value={currentToken} size={256}/>
+              )}
             </div>
           ))}
         </div>
