@@ -1,9 +1,12 @@
 import React from 'react'
+import QRScanner from '../components/QRScanner'
 
 function StudentDashboard() {
+
   return (
     <div>
-      Student Dashboard
+      <h1>QR Scanner</h1>
+      <QRScanner />
     </div>
   )
 }

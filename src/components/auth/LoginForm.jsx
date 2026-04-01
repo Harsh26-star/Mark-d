@@ -41,6 +41,7 @@ function LoginForm() {
             <div className='flex flex-col gap-1'>
                 <label className="text-sm font-bold text-slate-700">Your Email</label>
                 <input
+                    name='email'
                     type="email"
                     placeholder="Enter Your Email"
                     onChange={(e) => setEmail(e.target.value)}
