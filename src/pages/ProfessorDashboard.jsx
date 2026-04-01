@@ -132,7 +132,11 @@ function ProfessorDashboard() {
                 {activeSessionId ? 'Close Session' : 'Open Session'}
               </button>
               {activeSessionId && activeSubjectId === subject.id && currentToken && (
-                <QRCodeSVG value={currentToken} size={256}/>
+                selectedMode === 'QR'
+                  ? <QRCodeSVG value={currentToken} size={256}/>
+                  : <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
+                    {currentToken.slice(-4).toUpperCase()}
+                    </p>
               )}
             </div>
           ))}
