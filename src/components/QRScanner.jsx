@@ -60,7 +60,7 @@ function QRScanner() {
 
         scanner.render(
             (decodedText) => {
-                console.log("Scanned:", decodedText);
+                scanner.pause()
                 setScannedResult(decodedText)
                 handleAttendance(decodedText)
             },
