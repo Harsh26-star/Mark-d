@@ -55,21 +55,54 @@ function StudentDashboard() {
   }
 
   return (
-    <div>
-      <button onClick={() => setMode("qr")}>Scan QR</button>
-      <button onClick={() => setMode("otp")}>Enter OTP</button>
+    <div className='min-h-screen bg-slate-100 flex items-center justify-center p-8'>
+      <div className='bg-white rounded-xl shadow-sm p-8 w-full max-w-md flex flex-col'>
+        <h1 className="text-2xl font-bold text-slate-800">Mark Attendance</h1>
+      
+      <div className='flex gap-3'>
+        <button
+          onClick={() => setMode("qr")}
+          className={`flex-1 py-2 rounded-lg font-medium transition ${
+            mode === "qr"
+              ? "bg-slate-900 text-white"
+              : "border border-slate-300 text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          Scan QR
+        </button>
+        <button
+        onClick={() => setMode("otp")}
+        className={`flex-1 py2 rounded-lg font-medium transition ${
+          mode === "otp"
+            ? "bg-slate-900 text-white"
+            : "border border-slate-300 text-slate-700 hover:bg-slate-50"
+        }`}
+        >
+          Enter OTP
+          </button>
+      </div>
 
       {mode === "otp" && (
-        <form onSubmit={handleOTPSubmit}>
+        <form onSubmit={handleOTPSubmit} className='flex flex-col gap-4'>
           <input
             onChange={(e) => { setOtp(e.target.value) }}
-            type="text" placeholder='Enter OTP' />
-          <button type='submit'>Submit</button>
+            type="text" 
+            placeholder='Enter OTP'
+            maxLength={4}
+            className='border border-slate-200 rounded-lg px3 py-2 text-center text-2xl font-bold tracking-widest focus:outline-none focus:border-blue-500'
+            />
+          <button 
+          type='submit'
+          className='bg-slate-900 text-white rounded-lg py-2 hover:bg-slate-800 transition'
+          >Submit</button>
         </form>
       )}
-      {mode === "qr" && (
-        <QRScanner />
-      )}
+
+      {mode === "qr" && <QRScanner />}
+
+      {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
+      {success && <p className='text-green-600 font-semibold text-center'>{success}</p>}
+      </div>
     </div>
   )
 }
