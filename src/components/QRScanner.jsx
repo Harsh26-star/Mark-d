@@ -62,6 +62,7 @@ function QRScanner() {
             (decodedText) => {
                 console.log("Scanned:", decodedText);
                 setScannedResult(decodedText)
+                handleAttendance(decodedText)
             },
             (error) => {
                 console.warn(error);
