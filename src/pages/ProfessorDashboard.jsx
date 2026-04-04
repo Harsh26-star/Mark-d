@@ -13,8 +13,13 @@ function ProfessorDashboard() {
   const [activeSessionId, setActiveSessionId] = useState(null)
   const [sessionStatus, setSessionStatus] = useState(null)
   const [currentToken, setCurrentToken] = useState(null)
+  const [currentOTP, setCurrentOTP] = useState(null)
 
   const intervalRef = useRef(null)
+
+  function generateOTP() {
+      return Math.floor(1000 + Math.random() * 9000).toString()
+    }
 
   useEffect(() => {
     async function checkUser() {
@@ -51,16 +56,19 @@ function ProfessorDashboard() {
       async function refreshToken() {
         const newToken = crypto.randomUUID()
         const newTokenExpiresAt = new Date(Date.now() + 60 * 1000).toISOString()
+        const newOTP = generateOTP()
 
         const { error } = await supabase
           .from('sessions')
           .update({
             token: newToken,
-            token_expires_at: newTokenExpiresAt
+            token_expires_at: newTokenExpiresAt,
+            otp: newOTP
           })
           .eq('id', activeSessionId)
 
         setCurrentToken(newToken)
+        setCurrentOTP(newOTP)
       }
 
       refreshToken()
@@ -83,7 +91,8 @@ function ProfessorDashboard() {
         closes_at: closesAt,
         mode: selectedMode,
         token: token,
-        token_expires_at: tokenExpiresAt
+        token_expires_at: tokenExpiresAt,
+        otp: generateOTP()
       })
       .select()
       .single()
@@ -91,6 +100,7 @@ function ProfessorDashboard() {
     if (!error) {
       setActiveSessionId(data.id)
       setActiveSubjectId(subjectId)
+      setCurrentOTP(data.otp)
     }
 
     const { data: { session } } = await supabase.auth.getSession()
@@ -135,7 +145,7 @@ function ProfessorDashboard() {
                 selectedMode === 'QR'
                   ? <QRCodeSVG value={currentToken} size={256}/>
                   : <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
-                    {currentToken.slice(-4).toUpperCase()}
+                    {currentOTP}
                     </p>
               )}
             </div>
