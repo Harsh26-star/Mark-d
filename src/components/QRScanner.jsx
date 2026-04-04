@@ -34,6 +34,7 @@ function QRScanner() {
 
     return (
         <div>
+            <div id="reader"></div>
             {scannedResult && (
                 <p className="text-green-600 font-bold mt-4">Scanned: {scannedResult}</p>
             )}
