@@ -1,6 +1,7 @@
 import { use, useEffect, useState } from "react"
 import React from 'react'
 import { supabase } from "../lib/supabaseClient"
+import { useNavigate } from "react-router-dom"
 
 function AdminDashboard() {
 
@@ -13,7 +14,17 @@ function AdminDashboard() {
   const [codeClassId, setCodeClassId] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
   const [generatedCode, setGeneratedCode] = useState('')
+  const [classSuccess, setClassSuccess] = useState(null)
+  const [subjectSuccess, setSubjectSuccess] = useState(null)
+  const [codeSuccess, setCodeSuccess] = useState(null)
+  const [error, setError] = useState(null)
 
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
 
   function generateCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -35,7 +46,7 @@ function AdminDashboard() {
       if (data) setProfessors(data)
     }
 
-    async function fetchClasses(params) {
+    async function fetchClasses() {
 
       const { data, error } = await supabase
         .from('classes')
@@ -52,22 +63,35 @@ function AdminDashboard() {
   async function handleClassSubmit(e) {
     e.preventDefault()
 
+    setClassSuccess(null)
+    if (!className.trim()) {
+      setError('Class name cannot be empty')
+      return
+    }
+
     const { error: classError } = await supabase
       .from('classes')
       .insert({
         name: className
       })
-      
-    if (!className.trim()) {
-      setError('Class name cannot be empty')
-      return
+
+
+    if (!classError) {
+      const { data } = await supabase
+        .from('classes')
+        .select('*')
+
+      if (data) setClasses(data)
+
+      setClassSuccess('Class Added Successfully!')
     }
-    console.log(className)
+
   }
 
   async function handleSubjectSubmit(e) {
     e.preventDefault()
 
+    setSubjectSuccess(null)
     const { error: subjectError } = await supabase
       .from('subjects')
       .insert({
@@ -76,14 +100,15 @@ function AdminDashboard() {
         professor_id: professorId
       })
 
-    console.log('subject error:', subjectError)
-    console.log('classId:', classId)
-    console.log('professorId:', professorId)
-    console.log('subjectName:', subjectName)
+    if (!subjectError) {
+      setSubjectSuccess('Subject Added successfully!')
+    }
   }
 
   async function handleGenerateCode(e) {
     e.preventDefault()
+
+    setCodeSuccess(null)
     const code = generateCode()
 
     const { error } = await supabase
@@ -95,8 +120,10 @@ function AdminDashboard() {
         is_active: true
       })
 
-    if (!error) setGeneratedCode(code)
-
+    if (!error) {
+      setGeneratedCode(code)
+      setCodeSuccess('Code Generated successfully!')
+    }
   }
 
 
@@ -106,9 +133,12 @@ function AdminDashboard() {
 
       <div className="w-full max-w-5xl">
 
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-8 text-center">
-          Admin Dashboard
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
+            Admin Dashboard
+          </h1>
+          <button onClick={handleLogout} className="bg-slate-900 text-white rounded-lg font-medium py-1 px-2 hover:bg-slate-700 transition mt5">Logout</button>
+        </div>
 
         {/* Responsive grid */}
         <div className="grid md:grid-cols-2 gap-8">
@@ -136,7 +166,8 @@ function AdminDashboard() {
             >
               Create Class
             </button>
-
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {classSuccess && <p className='text-green-600 font-semibold text-center'>{classSuccess}</p>}
           </form>
 
 
@@ -187,8 +218,9 @@ function AdminDashboard() {
             >
               Create Subject
             </button>
-
+            {subjectSuccess && <p className='text-green-600 font-semibold text-center'>{subjectSuccess}</p>}
           </form>
+
           <form
             onSubmit={handleGenerateCode}
             className="bg-white shadow-sm rounded-xl p-6 flex flex-col gap-4"
@@ -229,6 +261,7 @@ function AdminDashboard() {
               </div>
 
             )}
+            {codeSuccess && <p className='text-green-600 font-semibold text-center'>{codeSuccess}</p>}
           </form>
         </div>
       </div>

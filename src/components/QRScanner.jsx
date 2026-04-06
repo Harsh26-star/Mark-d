@@ -7,8 +7,11 @@ import { supabase } from "../lib/supabaseClient";
 function QRScanner() {
 
     const [scannedResult, setScannedResult] = useState('')
+    const [error, setError] = useState(null)
 
     async function handleAttendance(token) {
+
+        setError(null)
         
         const { data: session } = await supabase
             .from('sessions')

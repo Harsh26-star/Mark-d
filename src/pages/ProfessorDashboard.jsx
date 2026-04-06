@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { QRCodeSVG } from 'qrcode.react'
+import { useNavigate } from 'react-router-dom'
 
 function ProfessorDashboard() {
 
@@ -16,10 +17,16 @@ function ProfessorDashboard() {
   const [currentOTP, setCurrentOTP] = useState(null)
 
   const intervalRef = useRef(null)
+  const navigate = useNavigate()
 
   function generateOTP() {
-      return Math.floor(1000 + Math.random() * 9000).toString()
-    }
+    return Math.floor(1000 + Math.random() * 9000).toString()
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
 
   useEffect(() => {
     async function checkUser() {
@@ -118,6 +125,9 @@ function ProfessorDashboard() {
       .eq('id', activeSessionId)
 
     setActiveSessionId(null)
+    setCurrentOTP(null)
+    setCurrentToken(null)
+    setActiveSubjectId(null)
     clearInterval(intervalRef.current)
   }
 
@@ -125,7 +135,12 @@ function ProfessorDashboard() {
   return (
     <>
       <div className="min-h-screen bg-slate-100 p-8">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6">Professor Dashboard</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
+            Professor Dashboard
+          </h1>
+          <button onClick={handleLogout} className="bg-slate-900 text-white rounded-lg font-medium py-1 px-2 hover:bg-slate-700 transition mt5">Logout</button>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-6">
           {subjects.map(subject => (
@@ -137,19 +152,21 @@ function ProfessorDashboard() {
               </select>
               <button
                 onClick={() => activeSessionId ? handleCloseSession() : handleOpenSession(subject.id)}
+                disabled={activeSessionId && activeSubjectId !== subjectId}
                 className="bg-slate-900 text-white rounded-lg py-2 cursor-pointer hover:bg-slate-800 transition"
               >
-                {activeSessionId ? 'Close Session' : 'Open Session'}
+                {activeSessionId && activeSubjectId === subjectId ? 'Close Session' : 'Open Session'}
               </button>
               {activeSessionId && activeSubjectId === subject.id && currentToken && (
                 selectedMode === 'QR'
-                  ? <QRCodeSVG value={currentToken} size={256}/>
+                  ? <QRCodeSVG value={currentToken} size={256} />
                   : <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
                     {currentOTP}
-                    </p>
+                  </p>
               )}
             </div>
           ))}
+
         </div>
       </div>
     </>
