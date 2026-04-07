@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+#reader__dashboard_section_csr span {
+  display: none;
+}
+
+#reader__dashboard_section_swaplink {
+  display: none;
+}
+
+#reader__status_span {
+  display: none;
+}
+
+#reader__header_message {
+  display: none;
+}
+
+#reader select {
+  display: none;
+}

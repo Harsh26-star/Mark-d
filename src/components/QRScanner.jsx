@@ -56,7 +56,9 @@ function QRScanner() {
             "reader",
             {
                 fps: 10,
-                qrbox: 250,
+                qrbox: { width: 250, height: 250 },
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [0]
             },
             false
         );

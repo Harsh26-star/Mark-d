@@ -8,6 +8,7 @@ function ProfessorDashboard() {
   const [loading, setLoading] = useState(true)
   const [professor, setProfessor] = useState(null)
   const [selectedMode, setSelectedMode] = useState('QR')
+  const [subjectModes, setSubjectModes] = useState({})
   const [subjects, setSubjects] = useState([])
   const [subjectId, setSubjectId] = useState()
   const [activeSubjectId, setActiveSubjectId] = useState(null)
@@ -167,7 +168,10 @@ function ProfessorDashboard() {
           {subjects.map(subject => (
             <div key={subject.id} className="bg-white shadow-sm rounded-xl p-6 flex flex-col gap-4">
               <h2 className="text-lg font-semibold text-slate-700">{subject.name}</h2>
-              <select onChange={(e) => setSelectedMode(e.target.value)}>
+              <select
+                onChange={(e) => setSubjectModes(prev => ({ ...prev, [subject.id]: e.target.value }))}
+                value={subjectModes[subject.id] || 'QR'}
+              >
                 <option value="QR">QR code</option>
                 <option value="OTP">OTP</option>
               </select>
@@ -178,13 +182,12 @@ function ProfessorDashboard() {
               >
                 {activeSessionId && activeSubjectId === subject.id ? 'Close Session' : 'Open Session'}
               </button>
-              {activeSessionId && activeSubjectId === subject.id && currentToken && (
-                selectedMode === 'QR'
-                  ? <QRCodeSVG value={currentToken} size={256} />
-                  : <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
-                    {currentOTP}
-                  </p>
-              )}
+              {subjectModes[subject.id] === 'OTP' || (!subjectModes[subject.id] && selectedMode === 'OTP')
+                ? <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
+                  {currentOTP}
+                </p>
+                : <QRCodeSVG value={currentToken} size={256} />
+              }
               {activeSessionId && activeSubjectId === subject.id && (
                 <p className='text-slate-600 font-medium'>
                   Students present: <span className='text-slate-900 font-bold'>{attendanceCount}</span>
