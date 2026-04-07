@@ -15,8 +15,10 @@ function ProfessorDashboard() {
   const [sessionStatus, setSessionStatus] = useState(null)
   const [currentToken, setCurrentToken] = useState(null)
   const [currentOTP, setCurrentOTP] = useState(null)
+  const [attendanceCount, setAttendanceCount] = useState(0)
 
   const intervalRef = useRef(null)
+  const channelRef = useRef(null)
   const navigate = useNavigate()
 
   function generateOTP() {
@@ -104,6 +106,23 @@ function ProfessorDashboard() {
       .select()
       .single()
 
+    channelRef.current = supabase
+      .channel('attendance-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'attendance',
+          filter: `session_id=eq.${data.id}`
+        },
+        (payload) => {
+          console.log('New attendance:', payload)
+          setAttendanceCount(prev => prev + 1)
+        }
+      )
+      .subscribe()
+
     if (!error) {
       setActiveSessionId(data.id)
       setActiveSubjectId(subjectId)
@@ -117,6 +136,7 @@ function ProfessorDashboard() {
   }
 
   async function handleCloseSession() {
+    supabase.removeChannel(channelRef.current)
     const { data } = await supabase
       .from('sessions')
       .update({
@@ -129,6 +149,7 @@ function ProfessorDashboard() {
     setCurrentToken(null)
     setActiveSubjectId(null)
     clearInterval(intervalRef.current)
+    setAttendanceCount(0)
   }
 
 
@@ -152,10 +173,10 @@ function ProfessorDashboard() {
               </select>
               <button
                 onClick={() => activeSessionId ? handleCloseSession() : handleOpenSession(subject.id)}
-                disabled={activeSessionId && activeSubjectId !== subjectId}
+                disabled={activeSessionId && activeSubjectId !== subject.id}
                 className="bg-slate-900 text-white rounded-lg py-2 cursor-pointer hover:bg-slate-800 transition"
               >
-                {activeSessionId && activeSubjectId === subjectId ? 'Close Session' : 'Open Session'}
+                {activeSessionId && activeSubjectId === subject.id ? 'Close Session' : 'Open Session'}
               </button>
               {activeSessionId && activeSubjectId === subject.id && currentToken && (
                 selectedMode === 'QR'
@@ -163,6 +184,11 @@ function ProfessorDashboard() {
                   : <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
                     {currentOTP}
                   </p>
+              )}
+              {activeSessionId && activeSubjectId === subject.id && (
+                <p className='text-slate-600 font-medium'>
+                  Students present: <span className='text-slate-900 font-bold'>{attendanceCount}</span>
+                </p>
               )}
             </div>
           ))}
