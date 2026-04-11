@@ -182,12 +182,13 @@ function ProfessorDashboard() {
               >
                 {activeSessionId && activeSubjectId === subject.id ? 'Close Session' : 'Open Session'}
               </button>
-              {subjectModes[subject.id] === 'OTP' || (!subjectModes[subject.id] && selectedMode === 'OTP')
-                ? <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
-                  {currentOTP}
-                </p>
-                : <QRCodeSVG value={currentToken} size={256} />
-              }
+              {activeSessionId && activeSubjectId === subject.id && currentToken && (
+                subjectModes[subject.id] === 'OTP'
+                  ? <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
+                    {currentOTP}
+                  </p>
+                  : <QRCodeSVG value={currentToken} size={256} />
+              )}
               {activeSessionId && activeSubjectId === subject.id && (
                 <p className='text-slate-600 font-medium'>
                   Students present: <span className='text-slate-900 font-bold'>{attendanceCount}</span>
