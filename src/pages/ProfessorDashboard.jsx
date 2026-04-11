@@ -83,6 +83,14 @@ function ProfessorDashboard() {
 
       refreshToken()
 
+    }, 60000);
+
+    return () => clearInterval(intervalRef.current)
+  }, [activeSessionId])
+
+  useEffect(() => {
+    if (!activeSessionId) return
+
     channelRef.current = supabase
       .channel('attendance-channel')
       .on(
@@ -103,11 +111,6 @@ function ProfessorDashboard() {
     return () => {
       supabase.removeChannel(channelRef.current)
     }
-
-
-    }, 60000);
-
-    return () => clearInterval(intervalRef.current)
   }, [activeSessionId])
 
 
