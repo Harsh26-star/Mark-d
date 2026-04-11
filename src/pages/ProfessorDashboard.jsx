@@ -92,11 +92,12 @@ function ProfessorDashboard() {
     if (!activeSessionId) return
 
     async function fetchCount() {
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('attendance')
         .select('*', {count: 'exact', head: true})
         .eq('session_id', activeSessionId)
 
+      console.log('count:', count, 'error:', error)
       setAttendanceCount(count || 0)
     }
 
