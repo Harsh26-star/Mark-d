@@ -92,14 +92,14 @@ function ProfessorDashboard() {
     if (!activeSessionId) return
 
     channelRef.current = supabase
-      .channel('attendance-channel')
+      .channel(`attendance-${activeSessionId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'attendance',
-          filter: `session_id=eq.${data.id}`
+          filter: `session_id=eq.${activeSessionId}`
         },
         (payload) => {
           console.log('New attendance payload:', payload)
