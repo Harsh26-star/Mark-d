@@ -83,10 +83,34 @@ function ProfessorDashboard() {
 
       refreshToken()
 
+    channelRef.current = supabase
+      .channel('attendance-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'attendance',
+          filter: `session_id=eq.${data.id}`
+        },
+        (payload) => {
+          console.log('New attendance payload:', payload)
+          setAttendanceCount(prev => prev + 1)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channelRef.current)
+    }
+
+
     }, 60000);
 
     return () => clearInterval(intervalRef.current)
   }, [activeSessionId])
+
+
 
   async function handleOpenSession(subjectId) {
 
@@ -107,23 +131,6 @@ function ProfessorDashboard() {
       .select()
       .single()
 
-    channelRef.current = supabase
-      .channel('attendance-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'attendance',
-          filter: `session_id=eq.${data.id}`
-        },
-        (payload) => {
-          console.log('New attendance:', payload)
-          setAttendanceCount(prev => prev + 1)
-        }
-      )
-      .subscribe()
-
     if (!error) {
       setActiveSessionId(data.id)
       setActiveSubjectId(subjectId)
@@ -137,7 +144,7 @@ function ProfessorDashboard() {
   }
 
   async function handleCloseSession() {
-    supabase.removeChannel(channelRef.current)
+
     const { data } = await supabase
       .from('sessions')
       .update({
