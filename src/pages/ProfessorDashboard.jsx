@@ -106,7 +106,9 @@ function ProfessorDashboard() {
           setAttendanceCount(prev => prev + 1)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Subscription status:' , status)
+      })
 
     return () => {
       supabase.removeChannel(channelRef.current)
