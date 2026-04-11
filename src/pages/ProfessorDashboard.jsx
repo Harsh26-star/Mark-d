@@ -91,28 +91,20 @@ function ProfessorDashboard() {
   useEffect(() => {
     if (!activeSessionId) return
 
-    channelRef.current = supabase
-      .channel(`attendance-${activeSessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'attendance',
-          // filter: `session_id=eq.${activeSessionId}`
-        },
-        (payload) => {
-          console.log('New attendance payload:', payload)
-          setAttendanceCount(prev => prev + 1)
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:' , status)
-      })
+    async function fetchCount() {
+      const { count } = await supabase
+        .from('attendance')
+        .select('*', {count: 'exact', head: true})
+        .eq('session_id', activeSessionId)
 
-    return () => {
-      supabase.removeChannel(channelRef.current)
+      setAttendanceCount(count || 0)
     }
+
+    fetchCount()
+
+    const pollInterval = setInterval(fetchCount, 5000)
+
+    return () => clearInterval(pollInterval)
   }, [activeSessionId])
 
 
