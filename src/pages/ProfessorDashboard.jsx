@@ -99,7 +99,7 @@ function ProfessorDashboard() {
           event: 'INSERT',
           schema: 'public',
           table: 'attendance',
-          filter: `session_id=eq.${activeSessionId}`
+          // filter: `session_id=eq.${activeSessionId}`
         },
         (payload) => {
           console.log('New attendance payload:', payload)
