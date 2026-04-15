@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import QRScanner from '../components/QRScanner'
 import { supabase } from '../lib/supabaseClient'
 import { useNavigate } from 'react-router-dom'
@@ -9,7 +9,9 @@ function StudentDashboard() {
   const [otp, setOtp] = useState('')
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
-  
+  const [user, setUser] = useState(null)
+  const [attendanceData, setAttendanceData] = useState([]);
+
   const navigate = useNavigate()
 
   async function handleLogout() {
@@ -17,10 +19,73 @@ function StudentDashboard() {
     navigate('/login')
   }
 
+  async function getStudentData() {
+
+    // Fetch student profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('class_id')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      console.error("Error fetching Profile:", profileError)
+      return
+    }
+    const classId = profile.class_id;
+
+    // Get all subjects for student's class
+    const { data: subjects } = await supabase
+      .from('subjects')
+      .select('*')
+      .eq('class_id', classId)
+
+    // Get all sessions for those subjects
+    const subjectsIds = subjects.map(s => s.id)
+    const { data: sessions } = await supabase
+      .from('sessions')
+      .select('*')
+      .in('subject_id', subjectsIds)
+
+    // Get all attendance records for this student
+    const { data: attended } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('student_id', user.id)
+
+    const result = subjects.map(subject => {
+      const totalSessions = sessions.filter(s => s.subject_id === subject.id).length
+      const attendedSessions = attended.filter(a =>
+        sessions.find(s => s.id === a.session_id && s.subject_id === subject.id)
+      ).length
+      const percentage = totalSessions > 0 ? ((attendedSessions / totalSessions) * 100).toFixed(2) : 0
+      return { ...subject, totalSessions, attendedSessions, percentage }
+    })
+    setAttendanceData(result)
+  }
+
+  useEffect(() => {
+    async function fetchUser() {
+      const { data, error } = await supabase.auth.getUser()
+      if (error || !data?.user) {
+        console.error("Error fetching user:", error)
+        navigate('/login')
+        return
+      }
+      setUser(data.user)
+    }
+    fetchUser()
+  }, [navigate])
+
   async function handleOTPSubmit(e) {
     e.preventDefault()
-
+    setSuccess(null)
     setError(null)
+
+    if (!user) {
+      setError("User not authenticated")
+      return
+    }
 
     // Find session with this OTP
     const { data: session } = await supabase
@@ -35,16 +100,13 @@ function StudentDashboard() {
       return
     }
 
-    // Get current student
-    const { data: { user } } = await supabase.auth.getUser()
-
     // Check if already marked
     const { data: existing } = await supabase
       .from('attendance')
       .select('*')
       .eq('session_id', session.id)
       .eq('student_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       setError('Already marked present')
@@ -61,7 +123,15 @@ function StudentDashboard() {
       })
 
     if (!error) setSuccess(`Attendance marked sucessfully! for ${session.subjects.name}`)
+
+    await getStudentData()
   }
+
+  useEffect(() => {
+    if (!user) return
+    getStudentData()
+  }, [user]);
+
 
   return (
     <div className='min-h-screen bg-slate-100 flex items-center justify-center p-8'>
@@ -114,6 +184,35 @@ function StudentDashboard() {
 
         {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
         {success && <p className='text-green-600 font-semibold text-center'>{success}</p>}
+        {attendanceData.length > 0 && (
+          <div className='mt-8 flex flex-col gap-4'>
+            <h2 className='text-lg font-bold text-slate-800'>Your Attendance</h2>
+            {attendanceData.map(subject => (
+              <div key={subject.id} className='bg-white rounded-xl shadow-sm p-4 flex flex-col gap-2'>
+                <div className='flex justify-between items-center'>
+                  <h3 className='font-semibold text-slate-700'>{subject.name}</h3>
+                  <span className={`font-bold text-lg ${subject.percentage >= 85 ? 'text-green-600' :
+                    subject.percentage >= 75 ? 'text-yellow-500' :
+                      'text-red-500'
+                    }`}>
+                    {subject.percentage}
+                  </span>
+                </div>
+                <p className='text-sm text-slate-500'>{subject.attendedSessions} / {subject.totalSessions} sessions attended</p>
+                <div className='w-full bg-slate-100 rounded-full h-2'>
+                  <div
+                    className={`h-2 rounded-full ${subject.percentage >= 85 ? 'bg-green-500' :
+                      subject.percentage >= 75 ? 'bg-yellow-400' :
+                        'bg-red-500'
+                      }`}
+                    style={{ width: `${subject.percentage}%` }}
+                  >
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
