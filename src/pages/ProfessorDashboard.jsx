@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 
 function ProfessorDashboard() {
 
+
   const [loading, setLoading] = useState(true)
   const [professor, setProfessor] = useState(null)
   const [selectedMode, setSelectedMode] = useState('QR')
@@ -17,6 +18,12 @@ function ProfessorDashboard() {
   const [currentOTP, setCurrentOTP] = useState(null)
   const [attendanceCount, setAttendanceCount] = useState(0)
   const [subjectReports, setSubjectReports] = useState({})
+  const [subjectSessions, setSubjectSessions] = useState({})
+  const [expandedSessionId, setExpandedSessionId] = useState(null)
+  const [operReportId, setOpenReportId] = useState(null)
+  const [sessionPages, setSessionPages] = useState({})
+  const [sessionAttendance, setSessionAttendance] = useState({})
+  const [subjectStudents, setSubjectStudents] = useState({})
 
   const intervalRef = useRef(null)
   const navigate = useNavigate()
@@ -170,8 +177,9 @@ function ProfessorDashboard() {
     // Get all sessions for this subject
     const { data: sessions, error: sessionsError } = await supabase
       .from('sessions')
-      .select('id')
+      .select('id, opened_at, closes_at, mode')
       .eq('subject_id', subject.id)
+      .order('opened_at', { ascending: false })
 
     if (sessionsError) {
       console.error('Error fetching sessions:', sessionsError)
@@ -205,7 +213,32 @@ function ProfessorDashboard() {
         percentage: totalSessions > 0 ? ((attended / totalSessions) * 100).toFixed(1) : 0
       }
     })
+    console.log('Sessions:', sessions)
     setSubjectReports(prev => ({ ...prev, [subject.id]: report }))
+    setSubjectSessions(prev => ({ ...prev, [subject.id]: sessions }))
+    setSubjectStudents(prev => ({ ...prev, [subject.id]: students }))
+  }
+
+  async function fetchSessionAttendance(session, students) {
+    const { data: records, error } = await supabase
+      .from('attendance')
+      .select('student_id, status')
+      .eq('session_id', session.id)
+
+    if (error) {
+      console.error('Error fetching session attendance:', error)
+      return
+    }
+
+    const result = students.map(student => {
+      const record = records.find(r => r.student_id === student.id)
+      return {
+        name: student.name,
+        present: record ? record.status : false
+      }
+    })
+
+    setSessionAttendance(prev => ({ ...prev, [session.id]: result }))
   }
 
   return (
@@ -237,10 +270,17 @@ function ProfessorDashboard() {
                 {activeSessionId && activeSubjectId === subject.id ? 'Close Session' : 'Open Session'}
               </button>
               <button
-                onClick={() => fetchSubjectReport(subject)}
+                onClick={() => {
+                  if (operReportId === subject.id) {
+                    setOpenReportId(null)
+                  } else {
+                    fetchSubjectReport(subject)
+                    setOpenReportId(subject.id)
+                  }
+                }}
                 className='text-sm text-slate-500 underline mt-1'
-              >View Report</button>
-              {subjectReports[subject.id] && (
+              >{operReportId === subject.id ? 'Hide Report' : 'View Report'}</button>
+              {operReportId === subject.id && subjectReports[subject.id] && (
                 <div className='mt-4 border-t pt-4'>
                   <h3 className='text-sm font-semibold text-slate-600 mb-2'>Attendance Report</h3>
                   <table className='w-full text-sm'>
@@ -263,6 +303,56 @@ function ProfessorDashboard() {
                       ))}
                     </tbody>
                   </table>
+                  {(() => {
+                    const page = sessionPages[subject.id] || 0
+                    const pageSize = 5
+                    const sessions = subjectSessions[subject.id] || []
+                    const paginated = sessions.slice(page * pageSize, (page + 1) * pageSize)
+                    const totalPages = Math.ceil(sessions.length / pageSize)
+
+                    return (
+                      <>
+                        <h3 className='text-sm font-semibold text-slate-600 mt-4 mb-2'>Sessions</h3>
+                        {paginated.map(session => (
+                          <div
+                            key={session.id}
+                            className='border rounded-lg p-3 mb-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50'
+                            onClick={() => {
+                              setExpandedSessionId(prev => prev === session.id ? null : session.id)
+                              fetchSessionAttendance(session, subjectStudents[subject.id])
+                            }}
+                          >
+                            <p className='font-medium'>
+                              {new Date(session.opened_at).toLocaleDateString('en-IN', {
+                                day: 'numeric', month: 'short', year: 'numeric'
+                              })} — {new Date(session.opened_at).toLocaleTimeString('en-IN', {
+                                hour: '2-digit', minute: '2-digit'
+                              })}
+                            </p>
+                            <p className='text-slate-500'>{session.mode} mode</p>
+                            {expandedSessionId === session.id && sessionAttendance[session.id] && (
+                              <div className='mt-2 border-t pt-2'>{sessionAttendance[session.id].map(student => (
+                                <p key={student.name} className={`py-0.5 ${student.present ? 'text-green-600' : 'text-red-500'}`}>{student.present ? '✅' : '❌'} {student.name}</p>
+                              ))}</div>
+                            )}
+                          </div>
+                        ))}
+                        <div className='flex justify-between items-center mt-2 text-sm text-slate-500'>
+                          <button
+                            disabled={page === 0}
+                            onClick={() => setSessionPages(prev => ({ ...prev, [subject.id]: page - 1 }))}
+                            className='disabled:opacity-30 hover:text-slate-800'
+                          >← Prev</button>
+                          <span>Page {page + 1} of {totalPages}</span>
+                          <button
+                            disabled={page >= totalPages - 1}
+                            onClick={() => setSessionPages(prev => ({ ...prev, [subject.id]: page + 1 }))}
+                            className='disabled:opacity-30 hover:text-slate-800'
+                          >Next →</button>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
               )}
               {activeSessionId && activeSubjectId === subject.id && currentToken && (
