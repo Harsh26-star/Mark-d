@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { QRCodeSVG } from 'qrcode.react'
 import { useNavigate } from 'react-router-dom'
 
+
 function ProfessorDashboard() {
 
   const [loading, setLoading] = useState(true)
@@ -10,16 +11,14 @@ function ProfessorDashboard() {
   const [selectedMode, setSelectedMode] = useState('QR')
   const [subjectModes, setSubjectModes] = useState({})
   const [subjects, setSubjects] = useState([])
-  const [subjectId, setSubjectId] = useState()
   const [activeSubjectId, setActiveSubjectId] = useState(null)
   const [activeSessionId, setActiveSessionId] = useState(null)
-  const [sessionStatus, setSessionStatus] = useState(null)
   const [currentToken, setCurrentToken] = useState(null)
   const [currentOTP, setCurrentOTP] = useState(null)
   const [attendanceCount, setAttendanceCount] = useState(0)
+  const [subjectReports, setSubjectReports] = useState({})
 
   const intervalRef = useRef(null)
-  const channelRef = useRef(null)
   const navigate = useNavigate()
 
   function generateOTP() {
@@ -58,7 +57,7 @@ function ProfessorDashboard() {
   }, [])
 
   useEffect(() => {
-    console.log('activeSessionId changed: ', activeSessionId)
+
     if (!activeSessionId) return
 
     intervalRef.current = setInterval(() => {
@@ -94,10 +93,9 @@ function ProfessorDashboard() {
     async function fetchCount() {
       const { count, error } = await supabase
         .from('attendance')
-        .select('*', {count: 'exact', head: true})
+        .select('*', { count: 'exact', head: true })
         .eq('session_id', activeSessionId)
 
-      console.log('count:', count, 'error:', error)
       setAttendanceCount(count || 0)
     }
 
@@ -135,9 +133,6 @@ function ProfessorDashboard() {
       setCurrentOTP(data.otp)
     }
 
-    const { data: { session } } = await supabase.auth.getSession()
-
-
     setCurrentToken(token)
   }
 
@@ -158,6 +153,60 @@ function ProfessorDashboard() {
     setAttendanceCount(0)
   }
 
+  async function fetchSubjectReport(subject) {
+
+    // Get all students in this subject's class
+    const { data: students, error: studentsError } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .eq('class_id', subject.class_id)
+      .eq('role', 'student')
+
+    if (studentsError) {
+      console.error('Error fetching students:', studentsError)
+      return
+    }
+
+    // Get all sessions for this subject
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('subject_id', subject.id)
+
+    if (sessionsError) {
+      console.error('Error fetching sessions:', sessionsError)
+      return
+    }
+
+    //Get all attendance records for this subject's sessions
+    const sessionIds = sessions.map(s => s.id)
+
+    const { data: attendanceRecords, error: attendanceError } = await supabase
+      .from('attendance')
+      .select('student_id, status')
+      .in('session_id', sessionIds)
+
+    if (attendanceError) {
+      console.error('Error fetching attendance:', attendanceError)
+      return
+    }
+
+    //Calculate percentage for each student
+    const totalSessions = sessions.length
+
+    const report = students.map(student => {
+      const attended = attendanceRecords.filter(
+        r => r.student_id === student.id && r.status === true
+      ).length
+
+      return {
+        name: student.name, attended,
+        total: totalSessions,
+        percentage: totalSessions > 0 ? ((attended / totalSessions) * 100).toFixed(1) : 0
+      }
+    })
+    setSubjectReports(prev => ({ ...prev, [subject.id]: report }))
+  }
 
   return (
     <>
@@ -187,6 +236,35 @@ function ProfessorDashboard() {
               >
                 {activeSessionId && activeSubjectId === subject.id ? 'Close Session' : 'Open Session'}
               </button>
+              <button
+                onClick={() => fetchSubjectReport(subject)}
+                className='text-sm text-slate-500 underline mt-1'
+              >View Report</button>
+              {subjectReports[subject.id] && (
+                <div className='mt-4 border-t pt-4'>
+                  <h3 className='text-sm font-semibold text-slate-600 mb-2'>Attendance Report</h3>
+                  <table className='w-full text-sm'>
+                    <thead>
+                      <tr className='text-left text-slate-500'>
+                        <th className='pb-1'>Student</th>
+                        <th className='pb-1'>Attended</th>
+                        <th className='pb-1'>Total</th>
+                        <th className='pb-1'>%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subjectReports[subject.id].map(student => (
+                        <tr key={student.name} className='border-t'>
+                          <td className='py-1'>{student.name}</td>
+                          <td className='py-1'>{student.attended}</td>
+                          <td className='py-1'>{student.total}</td>
+                          <td className={`py-1 font-semibold ${student.percentage < 75 ? 'text-red-500' : 'text-green-600'}`}>{student.percentage}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               {activeSessionId && activeSubjectId === subject.id && currentToken && (
                 subjectModes[subject.id] === 'OTP'
                   ? <p className='text-6xl font-black tracking-widest text-center text-slate-900'>
@@ -201,7 +279,6 @@ function ProfessorDashboard() {
               )}
             </div>
           ))}
-
         </div>
       </div>
     </>
