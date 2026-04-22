@@ -20,7 +20,7 @@ function ProfessorDashboard() {
   const [subjectReports, setSubjectReports] = useState({})
   const [subjectSessions, setSubjectSessions] = useState({})
   const [expandedSessionId, setExpandedSessionId] = useState(null)
-  const [operReportId, setOpenReportId] = useState(null)
+  const [openReportIds, setOpenReportIds] = useState(new Set())
   const [sessionPages, setSessionPages] = useState({})
   const [sessionAttendance, setSessionAttendance] = useState({})
   const [subjectStudents, setSubjectStudents] = useState({})
@@ -241,6 +241,17 @@ function ProfessorDashboard() {
     setSessionAttendance(prev => ({ ...prev, [session.id]: result }))
   }
 
+  const defaulters = Object.entries(subjectReports).flatMap(([subjectId, students]) => {
+    const subject = subjects.find(s => s.id === subjectId)
+    return students
+      .filter(student => student.percentage < 75)
+      .map(student => ({
+        subjectName: subject?.name,
+        studentName: student.name,
+        percentage: student.percentage
+      }))
+  })
+
   return (
     <>
       <div className="min-h-screen bg-slate-100 p-8">
@@ -271,16 +282,43 @@ function ProfessorDashboard() {
               </button>
               <button
                 onClick={() => {
-                  if (operReportId === subject.id) {
-                    setOpenReportId(null)
-                  } else {
-                    fetchSubjectReport(subject)
-                    setOpenReportId(subject.id)
-                  }
+                  setOpenReportIds(prev => {
+                    const next = new Set(prev)
+                    if (next.has(subject.id)) {
+                      next.delete(subject.id)
+                    } else {
+                      fetchSubjectReport(subject)
+                      next.add(subject.id)
+                    }
+                    return next
+                  })
                 }}
                 className='text-sm text-slate-500 underline mt-1'
-              >{operReportId === subject.id ? 'Hide Report' : 'View Report'}</button>
-              {operReportId === subject.id && subjectReports[subject.id] && (
+              >{openReportIds.has(subject.id) ? 'Hide Report' : 'View Report'}</button>
+              {defaulters.length > 0 && (
+                <div className="mt-8 bg-white shadow-sm rounded-xl p-6">
+                  <h2 className="text-lg font-semibold text-red-600 mb-4">⚠️ Defaulters (below 75%)</h2>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-slate-500">
+                        <th className="pb-2">Student</th>
+                        <th className="pb-2">Subject</th>
+                        <th className="pb-2">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {defaulters.map((d, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="py-2">{d.studentName}</td>
+                          <td className="py-2">{d.subjectName}</td>
+                          <td className="py-2 font-semibold text-red-500">{d.percentage}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {openReportIds.has(subject.id) && subjectReports[subject.id] && (
                 <div className='mt-4 border-t pt-4'>
                   <h3 className='text-sm font-semibold text-slate-600 mb-2'>Attendance Report</h3>
                   <table className='w-full text-sm'>
