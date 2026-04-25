@@ -113,6 +113,23 @@ function StudentDashboard() {
       return
     }
 
+    // Distance check
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject)
+    })
+
+    const { latitude: studentLat, longitude: studentLon } = position.coords
+
+    const distance = getDistanceInMeters(
+      studentLat, studentLon,
+      session.latitude, session.longitude
+    )
+
+    if (distance > 100) {
+      setError('You must be physically present in the classroom to mark attendance.')
+      return
+    }
+
     // Mark attendance
     const { error } = await supabase
       .from('attendance')
@@ -131,6 +148,22 @@ function StudentDashboard() {
     if (!user) return
     getStudentData()
   }, [user]);
+
+  function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000
+    const toRad = deg => (deg * Math.PI) / 180
+
+    const dLat = toRad(lat2 - lat1)
+    const dLon = toRad(lon2 - lon1)
+
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2)
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
 
 
   return (
@@ -155,7 +188,7 @@ function StudentDashboard() {
           </button>
           <button
             onClick={() => setMode("otp")}
-            className={`flex-1 py2 rounded-lg font-medium transition ${mode === "otp"
+            className={`flex-1 py-2 rounded-lg font-medium transition ${mode === "otp"
               ? "bg-slate-900 text-white"
               : "border border-slate-300 text-slate-700 hover:bg-slate-50"
               }`}
@@ -171,7 +204,7 @@ function StudentDashboard() {
               type="text"
               placeholder='Enter OTP'
               maxLength={4}
-              className='border border-slate-200 rounded-lg px3 py-2 text-center text-2xl font-bold tracking-widest focus:outline-none focus:border-blue-500'
+              className='border border-slate-200 rounded-lg px-3 py-2 text-center text-2xl font-bold tracking-widest focus:outline-none focus:border-blue-500'
             />
             <button
               type='submit'

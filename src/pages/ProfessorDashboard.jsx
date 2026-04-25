@@ -117,9 +117,15 @@ function ProfessorDashboard() {
 
   async function handleOpenSession(subjectId) {
 
+    await supabase.auth.getSession()
+
     const token = crypto.randomUUID()
     const tokenExpiresAt = new Date(Date.now() + 60 * 1000).toISOString()
     const closesAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject)
+    })
+    const { latitude, longitude } = position.coords
 
     const { data, error } = await supabase
       .from('sessions')
@@ -129,7 +135,9 @@ function ProfessorDashboard() {
         mode: selectedMode,
         token: token,
         token_expires_at: tokenExpiresAt,
-        otp: generateOTP()
+        otp: generateOTP(),
+        latitude,
+        longitude
       })
       .select()
       .single()
