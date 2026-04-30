@@ -18,6 +18,8 @@ function AdminDashboard() {
   const [subjectSuccess, setSubjectSuccess] = useState(null)
   const [codeSuccess, setCodeSuccess] = useState(null)
   const [error, setError] = useState(null)
+  const [professorCodeExpiry, setProfessorCodeExpiry] = useState('')
+  const [generatedProfessorCode, setGeneratedProfessorCode] = useState('')
 
   const navigate = useNavigate()
 
@@ -126,6 +128,22 @@ function AdminDashboard() {
     }
   }
 
+  async function handleGenerateProfessorCode(e) {
+    e.preventDefault()    
+    const code = generateCode()
+
+    const { error } = await supabase
+      .from('enrollment_codes')
+      .insert({
+        code: code,
+        expires_at: professorCodeExpiry,
+        is_active: true,
+        type: 'professor'
+      })
+
+    console.log('Professor code error:', error)
+    if (!error) setGeneratedProfessorCode(code)
+  }
 
 
   return (
@@ -227,7 +245,7 @@ function AdminDashboard() {
           >
 
             <h2 className="text-lg font-semibold text-slate-700">
-              Generate a code
+              Generate Student code
             </h2>
             <select
               onChange={(e) => setCodeClassId(e.target.value)}
@@ -244,6 +262,7 @@ function AdminDashboard() {
             <input
               type="date"
               placeholder="Set an Expiry date"
+              min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setExpiresAt(e.target.value)}
               className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
             />
@@ -262,6 +281,32 @@ function AdminDashboard() {
 
             )}
             {codeSuccess && <p className='text-green-600 font-semibold text-center'>{codeSuccess}</p>}
+          </form>
+          <form
+            onSubmit={handleGenerateProfessorCode}
+            className="bg-white shadow-sm rounded-xl p-6 flex flex-col gap-4"
+          >
+            <h2 className="text-lg font-semibold text-slate-700">
+              Generate Professor Code
+            </h2>
+            <input
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setProfessorCodeExpiry(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+            />
+            <button
+              type="submit"
+              className="bg-slate-900 text-white rounded-lg py-2 cursor-pointer hover:bg-slate-800 transition"
+            >
+              Generate Code
+            </button>
+            {generatedProfessorCode && (
+              <div>
+                <p>Share this code with the professor:</p>
+                <p className="font-bold tracking-widest">{generatedProfessorCode}</p>
+              </div>
+            )}
           </form>
         </div>
       </div>

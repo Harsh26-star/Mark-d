@@ -17,7 +17,7 @@ function ProtectedRoute({ children, role }) {
                 return
             }
 
-            const role = session.user.app_metadata.role
+            const role = session.user.app_metadata.role || session.user.user_metadata.role
             setProfile({ role })
             setLoading(false)
         }
