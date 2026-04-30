@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { QRCodeSVG } from 'qrcode.react'
 import { useNavigate } from 'react-router-dom'
+import Papa from 'papaparse'
 
 
 function ProfessorDashboard() {
@@ -260,6 +261,26 @@ function ProfessorDashboard() {
       }))
   })
 
+  function exportCSV(subject) {
+    const report = subjectReports[subject.id]
+    if (!report) return
+
+    const csv = Papa.unparse(report.map(student => ({
+      'Student Name': student.name,
+      'Sessions Attended': student.attended,
+      'Total Sessions': student.total,
+      'Attendance %': student.percentage + '%'
+    })))
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${subject.name}_attendance.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <>
       <div className="min-h-screen bg-slate-100 p-8">
@@ -303,6 +324,12 @@ function ProfessorDashboard() {
                 }}
                 className='text-sm text-slate-500 underline mt-1'
               >{openReportIds.has(subject.id) ? 'Hide Report' : 'View Report'}</button>
+              {subjectReports[subject.id] && (
+                <button
+                  onClick={() => exportCSV(subject)}
+                  className='text-sm text-slate-500 underline mt-1'
+                >Export CSV</button>
+              )}
               {defaulters.length > 0 && (
                 <div className="mt-8 bg-white shadow-sm rounded-xl p-6">
                   <h2 className="text-lg font-semibold text-red-600 mb-4">⚠️ Defaulters (below 75%)</h2>
