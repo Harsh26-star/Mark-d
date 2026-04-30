@@ -26,7 +26,8 @@ function LoginForm() {
             return
         }
 
-        const role = data.user.app_metadata.role
+        const role = data.user.app_metadata.role || data.user.user_metadata.role
+        console.log('Role:', role)
         if (role === 'student') navigate('/student')
         if (role === 'professor') navigate('/professor')
         if (role === 'admin') navigate('/admin')

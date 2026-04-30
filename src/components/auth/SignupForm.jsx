@@ -28,14 +28,13 @@ function SignupForm() {
             return
         }
 
+        // Determine role from code type
+        const role = codeData.type === 'professor' ? 'professor' : 'student'
+
         // Create auth user
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email,
             password
-        })
-
-        await supabase.auth.updateUser({
-            data: { role: 'student' }
         })
 
         if (authError) {
@@ -51,8 +50,8 @@ function SignupForm() {
                 id: authData.user.id,
                 name,
                 email,
-                role: 'student',
-                class_id: codeData.class_id
+                role,
+                class_id: codeData.type === 'professor' ? null : codeData.class_id
             })
 
         if (profileError) {
