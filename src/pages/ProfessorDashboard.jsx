@@ -9,6 +9,8 @@ function ProfessorDashboard() {
 
 
   const [loading, setLoading] = useState(true)
+  const [sessionLoading, setsessionLoading] = useState(false)
+  const [reportLoading, setreportLoading] = useState({})
   const [professor, setProfessor] = useState(null)
   const [selectedMode, setSelectedMode] = useState('QR')
   const [subjectModes, setSubjectModes] = useState({})
@@ -25,6 +27,7 @@ function ProfessorDashboard() {
   const [sessionPages, setSessionPages] = useState({})
   const [sessionAttendance, setSessionAttendance] = useState({})
   const [subjectStudents, setSubjectStudents] = useState({})
+  const [defaultersList, setdefaultersList] = useState([])
 
   const intervalRef = useRef(null)
   const navigate = useNavigate()
@@ -117,6 +120,7 @@ function ProfessorDashboard() {
 
 
   async function handleOpenSession(subjectId) {
+    setsessionLoading(true)
 
     await supabase.auth.getSession()
 
@@ -150,6 +154,7 @@ function ProfessorDashboard() {
     }
 
     setCurrentToken(token)
+    setsessionLoading(false)
   }
 
   async function handleCloseSession() {
@@ -170,6 +175,8 @@ function ProfessorDashboard() {
   }
 
   async function fetchSubjectReport(subject) {
+
+    setreportLoading(prev => ({ ...prev, [subject.id]: true }))
 
     // Get all students in this subject's class
     const { data: students, error: studentsError } = await supabase
@@ -222,10 +229,10 @@ function ProfessorDashboard() {
         percentage: totalSessions > 0 ? ((attended / totalSessions) * 100).toFixed(1) : 0
       }
     })
-    console.log('Sessions:', sessions)
     setSubjectReports(prev => ({ ...prev, [subject.id]: report }))
     setSubjectSessions(prev => ({ ...prev, [subject.id]: sessions }))
     setSubjectStudents(prev => ({ ...prev, [subject.id]: students }))
+    setreportLoading(prev => ({ ...prev, [subject.id]: false }))
   }
 
   async function fetchSessionAttendance(session, students) {
@@ -250,17 +257,6 @@ function ProfessorDashboard() {
     setSessionAttendance(prev => ({ ...prev, [session.id]: result }))
   }
 
-  const defaulters = Object.entries(subjectReports).flatMap(([subjectId, students]) => {
-    const subject = subjects.find(s => s.id === subjectId)
-    return students
-      .filter(student => student.percentage < 75)
-      .map(student => ({
-        subjectName: subject?.name,
-        studentName: student.name,
-        percentage: student.percentage
-      }))
-  })
-
   function exportCSV(subject) {
     const report = subjectReports[subject.id]
     if (!report) return
@@ -280,6 +276,22 @@ function ProfessorDashboard() {
     a.click()
     URL.revokeObjectURL(url)
   }
+
+  useEffect(() => {
+    const calculated = Object.entries(subjectReports).flatMap(([subjectId, students]) => {
+      const subject = subjects.find(s => s.id === subjectId)
+      return students
+        .filter(student => parseFloat(student.percentage) < 75)
+        .map(student => ({
+          subjectName: subject?.name,
+          studentName: student.name,
+          percentage: student.percentage
+        }))
+    })
+    console.log('Calculated defaulters:', calculated)
+    setdefaultersList(calculated)
+  }, [subjectReports, subjects])
+  console.log('defaultersList at render:', defaultersList.length)
 
   return (
     <>
@@ -304,10 +316,14 @@ function ProfessorDashboard() {
               </select>
               <button
                 onClick={() => activeSessionId ? handleCloseSession() : handleOpenSession(subject.id)}
-                disabled={activeSessionId && activeSubjectId !== subject.id}
+                disabled={activeSessionId && activeSubjectId !== subject.id || sessionLoading}
                 className="bg-slate-900 text-white rounded-lg py-2 cursor-pointer hover:bg-slate-800 transition"
               >
-                {activeSessionId && activeSubjectId === subject.id ? 'Close Session' : 'Open Session'}
+                {sessionLoading && activeSubjectId === subject.id
+                  ? 'Opening...'
+                  : activeSessionId && activeSubjectId === subject.id
+                    ? 'Close Session'
+                    : 'Open Session'}
               </button>
               <button
                 onClick={() => {
@@ -323,35 +339,18 @@ function ProfessorDashboard() {
                   })
                 }}
                 className='text-sm text-slate-500 underline mt-1'
-              >{openReportIds.has(subject.id) ? 'Hide Report' : 'View Report'}</button>
+              >
+                {reportLoading[subject.id]
+                  ? 'Loading...'
+                  : openReportIds.has(subject.id)
+                    ? 'Hide Report'
+                    : 'View Report'}
+              </button>
               {subjectReports[subject.id] && (
                 <button
                   onClick={() => exportCSV(subject)}
                   className='text-sm text-slate-500 underline mt-1'
                 >Export CSV</button>
-              )}
-              {defaulters.length > 0 && (
-                <div className="mt-8 bg-white shadow-sm rounded-xl p-6">
-                  <h2 className="text-lg font-semibold text-red-600 mb-4">⚠️ Defaulters (below 75%)</h2>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-slate-500">
-                        <th className="pb-2">Student</th>
-                        <th className="pb-2">Subject</th>
-                        <th className="pb-2">%</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {defaulters.map((d, i) => (
-                        <tr key={i} className="border-t">
-                          <td className="py-2">{d.studentName}</td>
-                          <td className="py-2">{d.subjectName}</td>
-                          <td className="py-2 font-semibold text-red-500">{d.percentage}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
               )}
               {openReportIds.has(subject.id) && subjectReports[subject.id] && (
                 <div className='mt-4 border-t pt-4'>
@@ -443,6 +442,33 @@ function ProfessorDashboard() {
             </div>
           ))}
         </div>
+        {defaultersList.filter(d =>
+          openReportIds.has(subjects.find(s => s.name === d.subjectName)?.id)
+        ).length > 0 && (
+          <div className="mt-8 bg-white shadow-sm rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-red-600 mb-4">⚠️ Defaulters (below 75%)</h2>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-500">
+                  <th className="pb-2">Student</th>
+                  <th className="pb-2">Subject</th>
+                  <th className="pb-2">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {defaultersList
+                .filter(d => openReportIds.has(subjects.find(s => s.name === d.subjectName)?.id))
+                .map((d, i) => (
+                  <tr key={i} className="border-t">
+                    <td className="py-2">{d.studentName}</td>
+                    <td className="py-2">{d.subjectName}</td>
+                    <td className="py-2 font-semibold text-red-500">{d.percentage}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   )
