@@ -288,10 +288,8 @@ function ProfessorDashboard() {
           percentage: student.percentage
         }))
     })
-    console.log('Calculated defaulters:', calculated)
     setdefaultersList(calculated)
   }, [subjectReports, subjects])
-  console.log('defaultersList at render:', defaultersList.length)
 
   return (
     <>
@@ -303,7 +301,13 @@ function ProfessorDashboard() {
           <button onClick={handleLogout} className="bg-slate-900 text-white rounded-lg font-medium py-1 px-2 hover:bg-slate-700 transition mt5">Logout</button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        {subjects.length === 0 ? (
+          <div className='flex flex-col items-center justify-center bg-white rounded-xl shadow-sm p-12 text-center '>
+            <p className='text-4xl mb-4'>📚</p>
+            <h2 className='text-lg font-semibold text-slate-700 mb-1'>No subjects assigned</h2>
+            <p className='text-sm text-slate-400'>Contact your admin to get subjects assigned</p>
+          </div>
+        ) : (<div className="grid md:grid-cols-2 gap-6">
           {subjects.map(subject => (
             <div key={subject.id} className="bg-white shadow-sm rounded-xl p-6 flex flex-col gap-4">
               <h2 className="text-lg font-semibold text-slate-700">{subject.name}</h2>
@@ -385,30 +389,35 @@ function ProfessorDashboard() {
                     return (
                       <>
                         <h3 className='text-sm font-semibold text-slate-600 mt-4 mb-2'>Sessions</h3>
-                        {paginated.map(session => (
-                          <div
-                            key={session.id}
-                            className='border rounded-lg p-3 mb-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50'
-                            onClick={() => {
-                              setExpandedSessionId(prev => prev === session.id ? null : session.id)
-                              fetchSessionAttendance(session, subjectStudents[subject.id])
-                            }}
-                          >
-                            <p className='font-medium'>
-                              {new Date(session.opened_at).toLocaleDateString('en-IN', {
-                                day: 'numeric', month: 'short', year: 'numeric'
-                              })} — {new Date(session.opened_at).toLocaleTimeString('en-IN', {
-                                hour: '2-digit', minute: '2-digit'
-                              })}
-                            </p>
-                            <p className='text-slate-500'>{session.mode} mode</p>
-                            {expandedSessionId === session.id && sessionAttendance[session.id] && (
-                              <div className='mt-2 border-t pt-2'>{sessionAttendance[session.id].map(student => (
-                                <p key={student.name} className={`py-0.5 ${student.present ? 'text-green-600' : 'text-red-500'}`}>{student.present ? '✅' : '❌'} {student.name}</p>
-                              ))}</div>
-                            )}
-                          </div>
-                        ))}
+
+                        {subjectSessions[subject.id]?.length === 0 ? (
+                          <p>No sessions held yet for this subject.</p>
+                        ) : (
+                          paginated.map(session => (
+                            <div
+                              key={session.id}
+                              className='border rounded-lg p-3 mb-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50'
+                              onClick={() => {
+                                setExpandedSessionId(prev => prev === session.id ? null : session.id)
+                                fetchSessionAttendance(session, subjectStudents[subject.id])
+                              }}
+                            >
+                              <p className='font-medium'>
+                                {new Date(session.opened_at).toLocaleDateString('en-IN', {
+                                  day: 'numeric', month: 'short', year: 'numeric'
+                                })} — {new Date(session.opened_at).toLocaleTimeString('en-IN', {
+                                  hour: '2-digit', minute: '2-digit'
+                                })}
+                              </p>
+                              <p className='text-slate-500'>{session.mode} mode</p>
+                              {expandedSessionId === session.id && sessionAttendance[session.id] && (
+                                <div className='mt-2 border-t pt-2'>{sessionAttendance[session.id].map(student => (
+                                  <p key={student.name} className={`py-0.5 ${student.present ? 'text-green-600' : 'text-red-500'}`}>{student.present ? '✅' : '❌'} {student.name}</p>
+                                ))}</div>
+                              )}
+                            </div>
+                          ))
+                        )}
                         <div className='flex justify-between items-center mt-2 text-sm text-slate-500'>
                           <button
                             disabled={page === 0}
@@ -441,34 +450,34 @@ function ProfessorDashboard() {
               )}
             </div>
           ))}
-        </div>
+        </div>)}
         {defaultersList.filter(d =>
           openReportIds.has(subjects.find(s => s.name === d.subjectName)?.id)
         ).length > 0 && (
-          <div className="mt-8 bg-white shadow-sm rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-red-600 mb-4">⚠️ Defaulters (below 75%)</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500">
-                  <th className="pb-2">Student</th>
-                  <th className="pb-2">Subject</th>
-                  <th className="pb-2">%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {defaultersList
-                .filter(d => openReportIds.has(subjects.find(s => s.name === d.subjectName)?.id))
-                .map((d, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="py-2">{d.studentName}</td>
-                    <td className="py-2">{d.subjectName}</td>
-                    <td className="py-2 font-semibold text-red-500">{d.percentage}%</td>
+            <div className="mt-8 bg-white shadow-sm rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-red-600 mb-4">⚠️ Defaulters (below 75%)</h2>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-slate-500">
+                    <th className="pb-2">Student</th>
+                    <th className="pb-2">Subject</th>
+                    <th className="pb-2">%</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {defaultersList
+                    .filter(d => openReportIds.has(subjects.find(s => s.name === d.subjectName)?.id))
+                    .map((d, i) => (
+                      <tr key={i} className="border-t">
+                        <td className="py-2">{d.studentName}</td>
+                        <td className="py-2">{d.subjectName}</td>
+                        <td className="py-2 font-semibold text-red-500">{d.percentage}%</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
       </div>
     </>
   )

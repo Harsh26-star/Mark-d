@@ -114,9 +114,15 @@ function StudentDashboard() {
     }
 
     // Distance check
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject)
-    })
+    let position 
+    try {
+      position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject)
+      })
+    } catch (geoError) {
+      setError('Location access is required to mark attendance. Please enable location permissions and try again.')
+      return
+    }
 
     const { latitude: studentLat, longitude: studentLon } = position.coords
 
@@ -156,7 +162,7 @@ function StudentDashboard() {
     const dLat = toRad(lat2 - lat1)
     const dLon = toRad(lon2 - lon1)
 
-    const a = 
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2)
@@ -217,7 +223,13 @@ function StudentDashboard() {
 
         {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
         {success && <p className='text-green-600 font-semibold text-center'>{success}</p>}
-        {attendanceData.length > 0 && (
+        {attendanceData.length === 0 ? (
+          <div className='flex flex-col items-center justify-center mt-8 text-center'>
+            <p className='text-4xl mb-4'>📋</p>
+            <h2 className='text-lg font-semibold text-slate-700 mb-1'>No attendance data yet</h2>
+            <p className='text-sm text-slate-400'>Your attendance will appear here once your professor opens a session.</p>
+          </div>
+        ) : (
           <div className='mt-8 flex flex-col gap-4'>
             <h2 className='text-lg font-bold text-slate-800'>Your Attendance</h2>
             {attendanceData.map(subject => (
@@ -228,7 +240,7 @@ function StudentDashboard() {
                     subject.percentage >= 75 ? 'text-yellow-500' :
                       'text-red-500'
                     }`}>
-                    {subject.percentage}
+                    {subject.percentage}%
                   </span>
                 </div>
                 <p className='text-sm text-slate-500'>{subject.attendedSessions} / {subject.totalSessions} sessions attended</p>
@@ -239,13 +251,13 @@ function StudentDashboard() {
                         'bg-red-500'
                       }`}
                     style={{ width: `${subject.percentage}%` }}
-                  >
-                  </div>
+                  />
                 </div>
               </div>
             ))}
           </div>
-        )}
+        )
+        }
       </div>
     </div>
   )

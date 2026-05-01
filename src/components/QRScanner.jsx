@@ -39,9 +39,16 @@ function QRScanner() {
             return
         }
 
-        const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject)
-        })
+        let position 
+        try {
+            await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject)
+            })
+        }catch (geoError) {
+            setScannedResult('Location access is required to mark attendance. Please enable location permissions.')
+            return
+        }
+            
 
         const { latitude: studentLat, longitude: studentLon } = position.coords
 
