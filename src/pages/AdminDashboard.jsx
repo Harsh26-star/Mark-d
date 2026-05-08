@@ -44,7 +44,6 @@ function AdminDashboard() {
         .select('*')
         .eq('role', 'professor')
 
-      console.log('professors:', data, error)
       if (data) setProfessors(data)
     }
 
@@ -54,7 +53,6 @@ function AdminDashboard() {
         .from('classes')
         .select('*')
 
-      console.log('classes:', data, error)
       if (data) setClasses(data)
     }
 
@@ -140,8 +138,6 @@ function AdminDashboard() {
         is_active: true,
         type: 'professor'
       })
-
-    console.log('Professor code error:', error)
     if (!error) setGeneratedProfessorCode(code)
   }
 
